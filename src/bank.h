@@ -59,6 +59,14 @@ public:
                   const std::string& type = "withdraw",
                   const std::string& date = "");
 
+    // Credits monthly interest on a positive balance: the balance times
+    // the monthly rate, rounded to the nearest cent, recorded as an
+    // "interest" transaction. Returns false (and changes nothing) when the
+    // rate is <= 0, the balance is <= 0, or the interest rounds to zero.
+    // `date` is the ISO date the interest is credited; "" means today.
+    bool apply_monthly_interest(double monthly_rate_percent,
+                                const std::string& date = "");
+
     // Statement for one calendar month: every transaction in that month in
     // date order with a running balance, plus opening/closing balances and
     // totals. A month outside 1-12 returns an empty statement.

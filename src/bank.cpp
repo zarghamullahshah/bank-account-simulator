@@ -63,6 +63,19 @@ bool Account::withdraw(Cents amount_cents, const std::string& note,
     return true;
 }
 
+bool Account::apply_monthly_interest(double monthly_rate_percent,
+                                     const std::string& date) {
+    if (monthly_rate_percent <= 0 || balance_cents_ <= 0) return false;
+    const Cents interest = static_cast<Cents>(std::llround(
+        static_cast<double>(balance_cents_) * monthly_rate_percent / 100.0));
+    if (interest <= 0) return false;
+    balance_cents_ += interest;
+    history_.push_back({"interest", interest, balance_cents_,
+                        "monthly interest",
+                        date.empty() ? current_date() : date});
+    return true;
+}
+
 MonthlyStatement Account::monthly_statement(int year, int month) const {
     MonthlyStatement stmt{year, month, 0, 0, 0, 0, {}};
     if (month < 1 || month > 12) return stmt;

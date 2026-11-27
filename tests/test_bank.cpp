@@ -167,6 +167,56 @@ int main() {
         CHECK(bad.closing_balance_cents == 0);
     }
 
+    // --- Monthly interest: credited on a positive balance, rounded ---
+    {
+        Account acc("I1", "Saver", 10000);  // $100.00
+        CHECK(acc.apply_monthly_interest(1.0, "2026-11-30"));
+        CHECK(acc.balance_cents() == 10100);  // +$1.00
+        CHECK(acc.history().back().type == "interest");
+        CHECK(acc.history().back().amount_cents == 100);
+        CHECK(acc.history().back().date == "2026-11-30");
+        // Second month compounds on the new balance.
+        CHECK(acc.apply_monthly_interest(1.0, "2026-12-31"));
+        CHECK(acc.balance_cents() == 10201);  // 10100 * 1% = 101 cents
+    }
+    {
+        // Rounding: $10.05 at 1% is 10.05 cents -> 10 cents.
+        Account acc("I2", "Rounding", 1005);
+        CHECK(acc.apply_monthly_interest(1.0, "2026-11-30"));
+        CHECK(acc.balance_cents() == 1015);
+        CHECK(acc.history().back().amount_cents == 10);
+    }
+    {
+        // Zero/negative rate, zero balance, and dust that rounds to zero
+        // all refuse and change nothing.
+        Account acc("I3", "Empty", 0);
+        CHECK(!acc.apply_monthly_interest(1.0, "2026-11-30"));
+        CHECK(acc.balance_cents() == 0);
+        CHECK(acc.history().empty());
+        Account acc2("I4", "Saver", 10000);
+        CHECK(!acc2.apply_monthly_interest(0.0, "2026-11-30"));
+        CHECK(!acc2.apply_monthly_interest(-2.5, "2026-11-30"));
+        CHECK(acc2.balance_cents() == 10000);
+        CHECK(acc2.history().size() == 1);  // opening balance only
+        Account acc3("I5", "Dust", 1);  // 1 cent at 1% rounds to 0
+        CHECK(!acc3.apply_monthly_interest(1.0, "2026-11-30"));
+        CHECK(acc3.balance_cents() == 1);
+    }
+    {
+        // Interest shows up in the monthly statement as money in.
+        Account acc("I6", "Statement Saver", 0);
+        CHECK(acc.deposit(20000, "pay", "deposit", "2026-11-01"));
+        CHECK(acc.apply_monthly_interest(0.5, "2026-11-30"));  // +100 cents
+        const auto stmt = acc.monthly_statement(2026, 11);
+        CHECK(stmt.total_deposits_cents == 20100);
+        CHECK(stmt.total_withdrawals_cents == 0);
+        CHECK(stmt.closing_balance_cents == 20100);
+        CHECK(stmt.entries.size() == 2);
+        CHECK(stmt.entries[1].type == "interest");
+        CHECK(stmt.entries[1].amount_cents == 100);
+        CHECK(stmt.entries[1].balance_after_cents == 20100);
+    }
+
     std::cout << checks_run << " checks, " << checks_failed << " failed.\n";
     if (checks_failed == 0) std::cout << "All tests passed.\n";
     return checks_failed == 0 ? 0 : 1;

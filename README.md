@@ -14,6 +14,10 @@ suffer floating-point rounding errors.
 - Monthly statements — every deposit and withdrawal in a month in date
   order with a running balance, plus opening balance, totals and closing
   balance (see below)
+- Monthly interest — `apply_monthly_interest(rate)` credits the balance
+  times the monthly rate (rounded to the nearest cent) as an "interest"
+  transaction; refused on a zero balance, a non-positive rate, or interest
+  that rounds to zero cents
 - `src/main.cpp` — a demo that runs a small scripted scenario and prints
   account statements
 
@@ -44,7 +48,7 @@ make        # build the demo
 ## How to test
 
 ```bash
-make test   # builds and runs the test suite — 93 checks, no dependencies
+make test   # builds and runs the test suite — 121 checks, no dependencies
 ```
 
 The suite covers deposits, withdrawals, overdraft refusal, negative and
@@ -54,4 +58,7 @@ and every failure mode of a transfer — plus monthly statements: several
 transactions in one month (including an out-of-order entry), a month with
 no transactions, an opening balance carried over from a prior month,
 transfers counted as in/out, today's date stamped on undated transactions,
-and an invalid month returning an empty statement.
+and an invalid month returning an empty statement — plus monthly interest:
+credit and compounding, rounding to the nearest cent, refusal on a zero
+balance, a non-positive rate or dust that rounds to zero, and interest
+appearing in the monthly statement as money in.
